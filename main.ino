@@ -111,8 +111,8 @@ void onRecv(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
       return;
     } 
     for (int i = 0; i < clientCount; i++){
-      if (clients[i].client_id = p.client_id && clients[i].role = p.role);
-      pt->ackReceived[i] = true;
+      if (clients[i].client_id == p.client_id && clients[i].role == p.role)
+        pt->ackReceived[i] = true;
       Serial.print("ACK confirmed from client ");
       Serial.println(p.client_id);
     }
