@@ -29,6 +29,7 @@ struct PendingTrigger {
   bool ackReceived[MAX_CLIENTS];
   uint32_t sentTimeMs;
   int retryCount;
+  bool expected[MAX_CLIENTS];
 };
 
 //Samplers
@@ -36,7 +37,7 @@ PendingTrigger pendingSampler{};
 //Triggers
 PendingTrigger pendingDatalogger{};
 //retry constants
-static const uint32_t ACK_TIMEOUT_MS = 200;
+static const uint32_t RETRY_INTERVALS_MS[] = {150, 300, 600};
 static const int MAX_RETRIES = 3;
 
 static const uint32_t SECRET_TAG = 0xAQUA0001;
@@ -142,8 +143,16 @@ void sendTriggerToRole(uint8_t role, uint32_t trigger_id) {
   pt->sentTimeMs = millis();
   pt->retryCount = 0;
 
-  for (int i = 0; i < MAX_CLIENTS; i++)
+  //set all clients to ack received = false, AND maintain a list of the expected clients
+  for (int i = 0; i < MAX_CLIENTS; i++) {
     pt->ackReceived[i] = false;
+
+    if (i < clientCount && clients[i].role == role) {
+      pt->expected[i] = true;
+    } else {
+      pt->expected[i] = false;
+    }
+  }
   Packet t;
   t.msg_type = MSG_TRIGGER;
   t.role = role;
@@ -193,8 +202,9 @@ void checkPending(PendingTrigger* pt) {
   bool allAcked = true;
 
   for (int i = 0; i < clientCount; i++) {
-    if (clients[i].role == pt->role &&
-        !pt->ackReceived[i]) {
+    //check expected and ack received - don't need to check role (include in expected)
+    if (pt->expected[i] &&
+    !pt->ackReceived[i]) {
       allAcked = false;
       break;
     }
@@ -205,17 +215,17 @@ void checkPending(PendingTrigger* pt) {
     pt->active = false;
     return;
   }
-
-  if (millis() - pt->sentTimeMs > ACK_TIMEOUT_MS) {
-
-    if (pt->retryCount >= MAX_RETRIES) {
-      Serial.println("Trigger FAILED (missing ACKs) - max retries exceeded");
-      pt->active = false;
-      return;
-    }
+  
+  if (pt->retryCount < MAX_RETRIES &&
+    millis() - pt->sentTimeMs > RETRY_INTERVALS_MS[pt->retryCount]) {
 
     pt->retryCount++;
     pt->sentTimeMs = millis();
+
+    if (pt->retryCount >= MAX_RETRIES) {
+      Serial.println("Trigger FAILED (missing ACKs)");
+      pt->active = false;
+    }
 
     Serial.print("Retry #");
     Serial.println(pt->retryCount);
