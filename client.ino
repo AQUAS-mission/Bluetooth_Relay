@@ -1,16 +1,42 @@
+#include <WiFi.h>
+#include <esp_now.h>
+
+enum MsgType : uint8_t {
+  MSG_HELLO   = 1,
+  MSG_TRIGGER = 2,
+  MSG_ACK     = 3,
+};
+
+enum ClientRole : uint8_t {
+  ROLE_SAMPLER    = 1,
+  ROLE_DATALOGGER = 2,
+};
+
+struct __attribute__((packed)) Packet {
+  uint8_t  msg_type;
+  uint8_t  role;
+  uint32_t client_id;
+  uint32_t trigger_id;
+  uint32_t secret_tag; // optional
+};
+
+static const uint32_t SECRET_TAG = 0xA0A00001;
+
 // Config
 static const ClientRole MY_ROLE = ROLE_SAMPLER; // or ROLE_DATALOGGER
 static const uint32_t CLIENT_ID = 0x12345678;   // set per device
 
 // Server MAC address (fill in after reading Serial from server)
-uint8_t SERVER_MAC[6] = {0x24,0x6F,0x28,0xAA,0xBB,0xCC};
+uint8_t SERVER_MAC[6] = {0xEC,0x64,0xC9,0x7B,0x8E,0x64};
 
 volatile bool haveTrigger = false;
 volatile uint32_t lastTriggerId = 0;
 volatile bool lastSendSuccess = false;
 
 //confirm ACK receipt
-void onSend(const uint8_t *mac_addr, esp_now_send_status_t status) {
+void onSend(const wifi_tx_info_t *tx_info,
+            esp_now_send_status_t status)
+{
   lastSendSuccess = (status == ESP_NOW_SEND_SUCCESS);
 }
 
@@ -74,6 +100,7 @@ bool sendHello() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("client");
   randomSeed(esp_random());
   // Retry with backoff
   uint32_t backoffMs = 250;
