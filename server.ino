@@ -1,4 +1,3 @@
-
 #include <WiFi.h>
 #include <esp_now.h>
 
@@ -21,26 +20,14 @@ struct __attribute__((packed)) Packet {
   uint32_t secret_tag; // optional
 };
 
-//track which client's have sent ACK
-struct PendingTrigger {
-  bool active;
-  uint8_t role;
-  uint32_t trigger_id;
-  bool ackReceived[MAX_CLIENTS];
-  uint32_t sentTimeMs;
-  int retryCount;
-  bool expected[MAX_CLIENTS];
-};
 
-//Samplers
-PendingTrigger pendingSampler{};
-//Triggers
-PendingTrigger pendingDatalogger{};
+
+
 //retry constants
 static const uint32_t RETRY_INTERVALS_MS[] = {150, 300, 600};
 static const int MAX_RETRIES = 3;
 
-static const uint32_t SECRET_TAG = 0xAQUA0001;
+static const uint32_t SECRET_TAG = 0xA0A00001;
 // GPIO config
 static const int GPIO_DATALOGGER_TRIGGER = 25;
 static const int GPIO_SAMPLER_TRIGGER    = 26;
@@ -58,6 +45,21 @@ static const uint32_t CLIENT_TIMEOUT_MS = 10000;  // 10 seconds
 static const int MAX_CLIENTS = 10;
 ClientInfo clients[MAX_CLIENTS];
 int clientCount = 0;
+
+//track which clients have sent ACK
+struct PendingTrigger {
+  bool active;
+  uint8_t role;
+  uint32_t trigger_id;
+  bool ackReceived[MAX_CLIENTS];
+  uint32_t sentTimeMs;
+  int retryCount;
+  bool expected[MAX_CLIENTS];
+};
+//Samplers
+PendingTrigger pendingSampler{};
+//Triggers
+PendingTrigger pendingDatalogger{};
 
 uint32_t triggerCounterSampler = 0;
 uint32_t triggerCounterDatalogger = 0;
@@ -275,8 +277,16 @@ void purgeStaleClients() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("server");
   pinMode(GPIO_DATALOGGER_TRIGGER, INPUT);
   pinMode(GPIO_SAMPLER_TRIGGER, INPUT);
+
+  //print mac address to copy to client
+  WiFi.mode(WIFI_STA);   
+  delay(100);
+
+  Serial.print("Server MAC Address: ");
+  Serial.println(WiFi.macAddress());
 
   while (!initEspNowServer()) {
     delay(500);
