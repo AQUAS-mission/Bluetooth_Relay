@@ -114,11 +114,11 @@ bool sendHello() {
 //** ALL SAMPLING-SPECIFIC LOGIC **//
 
 // sampler pin definitions
-static const int CONTAINER_PINS[3] = {10, 11, 12};
-static const int OUTFLOW_SOLENOID_PIN = 13;   // Pin to control outflow solenoid
-static const int SENSOR_PINS[3] = {7, 8, 9};
-static const int PUMP_PIN = 2;               // Digital pin for pump control
-static const int SAMPLE_TRIGGER_PIN = 6;     // Digital pin used to trigger sampling
+static const int CONTAINER_PINS[3] = {16, 17, 18};
+static const int OUTFLOW_SOLENOID_PIN = 19;
+static const int SENSOR_PINS[3] = {4, 5, 6};   
+static const int PUMP_PIN = 21;
+static const int SAMPLE_TRIGGER_PIN = 22;     // Digital pin used to trigger sampling
 
 
 // Container status struct
