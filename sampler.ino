@@ -331,7 +331,7 @@ void loop() {
 
     Serial.print("Triggered: ");
     Serial.println(lastTriggerId);
-    if (!handleTrigger()){
+    if (!handleTrigger(lastTriggerId)){
       Serial.println("sample status send FAILED");
     }
     Serial.print("sample status: ");
