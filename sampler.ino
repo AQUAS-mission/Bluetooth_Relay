@@ -36,7 +36,7 @@ static const ClientRole MY_ROLE = ROLE_SAMPLER; // or ROLE_DATALOGGER
 static const uint32_t CLIENT_ID = 0x12345678;   // set per device
 
 // Server MAC address (fill in after reading Serial from server)
-uint8_t SERVER_MAC[6] = {0x98, 0xA3, 0x16, 0xFA, 0x61, 0x38};
+uint8_t SERVER_MAC[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
 volatile bool haveTrigger = false;
 volatile uint32_t lastTriggerId = 0;
