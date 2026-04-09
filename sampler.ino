@@ -36,7 +36,7 @@ static const ClientRole MY_ROLE = ROLE_SAMPLER; // or ROLE_DATALOGGER
 static const uint32_t CLIENT_ID = 0x12345678;   // set per device
 
 // Server MAC address (fill in after reading Serial from server)
-uint8_t SERVER_MAC[6] = {0xEC,0x64,0xC9,0x7B,0x8E,0x64};
+uint8_t SERVER_MAC[6] = {0x98, 0xA3, 0x16, 0xFA, 0x61, 0x38};
 
 volatile bool haveTrigger = false;
 volatile uint32_t lastTriggerId = 0;
@@ -114,11 +114,13 @@ bool sendHello() {
 //** ALL SAMPLING-SPECIFIC LOGIC **//
 
 // sampler pin definitions
+
+
 static const int CONTAINER_PINS[3] = {16, 17, 18};
-static const int OUTFLOW_SOLENOID_PIN = 19;
-static const int SENSOR_PINS[3] = {4, 5, 6};   
+static const int OUTFLOW_SOLENOID_PIN = 15;
+static const int SENSOR_PINS[3] = {4, 5, 6};
 static const int PUMP_PIN = 21;
-static const int SAMPLE_TRIGGER_PIN = 22;     // Digital pin used to trigger sampling
+static const int SAMPLE_TRIGGER_PIN = 7;
 
 
 // Container status struct
@@ -137,11 +139,15 @@ static int sampleStatus = 0;
 
 // Turn pump on/off
 void setPump(bool on) {
+ 
   digitalWrite(PUMP_PIN, on ? HIGH : LOW);
+
 }
+
 
 // Purge system: flush lines for specified duration (ms)
 void purge(unsigned long duration) {
+  
   // Close all sample solenoids
   for (int i = 0; i < 3; i++) {
     digitalWrite(containers[i].container_pin, LOW);
@@ -153,26 +159,31 @@ void purge(unsigned long duration) {
   digitalWrite(OUTFLOW_SOLENOID_PIN, HIGH);
   setPump(true);
 
-  delay(duration);
+  //delay(duration);
 
   // Stop pump and close outflow
   setPump(false);
   digitalWrite(OUTFLOW_SOLENOID_PIN, LOW);
+ 
   Serial.println("Purging finished.");
 }
 
+
 // Force reset all container status
 void forceReset() {
+  
   for (int i = 0; i < 3; i++) {
     containers[i].is_filled = false;
   }
   currentSampleContainer = 0;
   Serial.println("Force reset: All container status reset to false");
+
 }
 
 
 // Sample into the current container (guardrails included)
 void sample() {
+ 
   if (currentSampleContainer >= 3) {
     Serial.println("All containers filled.");
     sampleStatus = 1;
@@ -204,7 +215,7 @@ void sample() {
   Serial.print("Sampling container ");
   Serial.println(currentSampleContainer + 1);
   unsigned long startTime = millis();
-  unsigned long timeout = 20000;  // 10 seconds safety timeout
+  unsigned long timeout = 10000;  // 10 seconds safety timeout
 
   // Wait until the container is filled or timeout
   while (digitalRead(csc.sensor_pin) == HIGH) {
@@ -219,7 +230,7 @@ void sample() {
   digitalWrite(csc.container_pin, LOW);
   Serial.print("Sampling for container ");
   Serial.print(currentSampleContainer + 1);
-  Serial.println("COMPLETED.");
+  Serial.println(" COMPLETED.");
 
   // Mark container as filled and move to next
   if(digitalRead(csc.sensor_pin) == LOW){ // LOW = water detected, HIGH = no water
@@ -230,9 +241,11 @@ void sample() {
   Serial.print("Sample collected in container ");
   Serial.println(currentSampleContainer);
   sampleStatus = 3;
+
 }
 
 bool sendSampleStatus(uint32_t sampleStatus, uint32_t triggerId) {
+  
   Packet status{};
   status.msg_type = MSG_STAT;
   status.role = MY_ROLE;
@@ -249,11 +262,13 @@ bool sendSampleStatus(uint32_t sampleStatus, uint32_t triggerId) {
  
   
   return lastSendSuccess;
+ 
 
  
 }
 
 bool handleTrigger(uint32_t triggerId){
+  
 
   Serial.print("Running sample for trigger: ");
   Serial.println(triggerId);
@@ -266,7 +281,8 @@ bool handleTrigger(uint32_t triggerId){
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("client");
+  delay(5000);
+  Serial.println("sampler");
   randomSeed(esp_random());
   // Retry with backoff
   uint32_t backoffMs = 250;
@@ -286,16 +302,22 @@ void setup() {
 }
 sendHello();
 //set pin modes
+
 pinMode(PUMP_PIN, OUTPUT);
 pinMode(OUTFLOW_SOLENOID_PIN, OUTPUT);
+
 //initialize each container struct
+
  for (int i = 0; i < 3; i++) {
+  
   containers[i].container_pin = CONTAINER_PINS[i];
   containers[i].sensor_pin = SENSOR_PINS[i];
   containers[i].is_filled = false;
+  digitalWrite(containers[i].container_pin, LOW);
   pinMode(containers[i].container_pin, OUTPUT);
-  pinMode(containers[i].sensor_pin, INPUT);
+  pinMode(containers[i].sensor_pin, INPUT_PULLUP);
   }
+  
   
   //initialize pin states
   digitalWrite(PUMP_PIN, LOW);
