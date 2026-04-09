@@ -295,8 +295,8 @@ void setup() {
 
   //set stable mac address
   WiFi.mode(WIFI_STA);  
-  //uint8_t newMAC[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-  //esp_wifi_set_mac(WIFI_IF_STA, newMAC);
+  uint8_t newMAC[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+  esp_wifi_set_mac(WIFI_IF_STA, newMAC);
 
 
   //print mac address to copy to client
