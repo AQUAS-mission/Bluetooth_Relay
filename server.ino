@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <esp_now.h>
+#include <esp_wifi.h>
 
 enum MsgType : uint8_t {
   MSG_HELLO   = 1,
@@ -12,14 +13,15 @@ enum ClientRole : uint8_t {
   ROLE_DATALOGGER = 2,
 };
 
+
 struct __attribute__((packed)) Packet {
   uint8_t  msg_type;
   uint8_t  role;
   uint32_t client_id;
   uint32_t trigger_id;
   uint32_t secret_tag; // optional
+  uint32_t status;
 };
-
 
 
 
@@ -30,7 +32,7 @@ static const int MAX_RETRIES = 3;
 static const uint32_t SECRET_TAG = 0xA0A00001;
 // GPIO config
 static const int GPIO_DATALOGGER_TRIGGER = 25;
-static const int GPIO_SAMPLER_TRIGGER    = 26;
+static const int GPIO_SAMPLER_TRIGGER    = 19;
 
 struct ClientInfo {
   uint8_t mac[6];
@@ -201,7 +203,15 @@ void checkPending(PendingTrigger* pt) {
 
   if (!pt->active) return;
 
-  bool allAcked = true;
+  bool allAcked = false;
+  for (int i = 0; i < clientCount; i ++){
+    if (pt->expected[i]){
+      allAcked = true;
+    }
+  }
+  if (allAcked == false){
+    Serial.println("no triggers sent");
+  }
 
   for (int i = 0; i < clientCount; i++) {
     //check expected and ack received - don't need to check role (include in expected)
@@ -277,12 +287,20 @@ void purgeStaleClients() {
 
 void setup() {
   Serial.begin(115200);
+  delay(5000);
   Serial.println("server");
+  
   pinMode(GPIO_DATALOGGER_TRIGGER, INPUT);
   pinMode(GPIO_SAMPLER_TRIGGER, INPUT);
 
+  //set stable mac address
+  WiFi.mode(WIFI_STA);  
+  //uint8_t newMAC[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+  //esp_wifi_set_mac(WIFI_IF_STA, newMAC);
+
+
   //print mac address to copy to client
-  WiFi.mode(WIFI_STA);   
+   
   delay(100);
 
   Serial.print("Server MAC Address: ");
@@ -291,9 +309,12 @@ void setup() {
   while (!initEspNowServer()) {
     delay(500);
   }
+  
 }
 
 void loop() {
+  //Serial.println("Looping...");
+  
   bool samplerHigh = (digitalRead(GPIO_SAMPLER_TRIGGER) == HIGH);
   bool dataloggerHigh = (digitalRead(GPIO_DATALOGGER_TRIGGER) == HIGH);
 
@@ -321,6 +342,8 @@ void loop() {
     purgeStaleClients();
     lastPurgeMs = millis();
   }
+  
    
-  delay(5);
+  delay(1000);
 }
+
